@@ -53,15 +53,15 @@ void create_header(uint32_t totalLen, int i, int num){
     //Protocol UDP17
     output[9] = 0x11;
     //source address
-    output[12] = addrs[i] & 0xff000000;
-    output[13] = addrs[i] & 0x00ff0000;
-    output[14] = addrs[i] & 0x0000ff00;
-    output[15] = addrs[i] & 0x000000ff;
+    output[12] = addrs[i] & 0xff;
+    output[13] = (addrs[i] >> 8) & 0xff;
+    output[14] = (addrs[i] >> 16) & 0xff;
+    output[15] = (addrs[i] >> 24) & 0xff;
     //destination address
-    output[16] = multicastIP & 0xff000000;
-    output[17] = multicastIP & 0x00ff0000;
-    output[18] = multicastIP & 0x0000ff00;
-    output[19] = multicastIP & 0x000000ff;
+    output[16] = multicastIP & 0xff;
+    output[17] = (multicastIP >> 8) & 0xff;
+    output[18] = (multicastIP >> 16) & 0xff;
+    output[19] = (multicastIP >> 24) & 0xff;
     //UDP srcPort=dstPort=520
     output[20] = 0x02;
     output[21] = 0x08;
@@ -131,7 +131,6 @@ int main(int argc, char *argv[]) {
     };
     update(true, entry);
   }
-  Show();
     // What to do?
     // send complete routing table to every interface
     // ref. RFC2453 3.8
@@ -210,10 +209,8 @@ int main(int argc, char *argv[]) {
     in_addr_t src_addr, dst_addr;
     // extract src_addr and dst_addr from packet
     // big endian
-    src_addr = ((uint32_t)packet[12] << 24) + ((uint32_t)packet[13] << 16) + ((uint32_t)packet[14] << 8) + (uint32_t)packet[15];
-    dst_addr = ((uint32_t)packet[16] << 24) + ((uint32_t)packet[17] << 16) + ((uint32_t)packet[18] << 8) + (uint32_t)packet[19];
-    src_addr = ntohl(src_addr);
-    dst_addr = ntohl(dst_addr);
+    src_addr = ((uint32_t)packet[15] << 24) + ((uint32_t)packet[14] << 16) + ((uint32_t)packet[13] << 8) + (uint32_t)packet[12];
+    dst_addr = ((uint32_t)packet[19] << 24) + ((uint32_t)packet[18] << 16) + ((uint32_t)packet[17] << 8) + (uint32_t)packet[16];
 
 //    printf("addr:%08x\n", src_addr);
 //    printf("addr:%08x\n", dst_addr);
@@ -294,15 +291,15 @@ int main(int argc, char *argv[]) {
           //Protocol UDP17
           output[9] = 0x11;
           //source address
-          output[12] = addrs[if_index] & 0xff000000;
-          output[13] = addrs[if_index] & 0x00ff0000;
-          output[14] = addrs[if_index] & 0x0000ff00;
-          output[15] = addrs[if_index] & 0x000000ff;
+          output[12] = addrs[if_index] & 0xff;
+          output[13] = (addrs[if_index] >> 8) & 0xff;
+          output[14] = (addrs[if_index] >> 16) & 0xff;
+          output[15] = (addrs[if_index] >> 24) & 0xff;
           //destination address
-          output[16] = src_addr & 0xff000000;
-          output[17] = src_addr & 0x00ff0000;
-          output[18] = src_addr & 0x0000ff00;
-          output[19] = src_addr & 0x000000ff;
+          output[16] = src_addr & 0xff;
+          output[17] = (src_addr >> 8) & 0xff;
+          output[18] = (src_addr >> 16) & 0xff;
+          output[19] = (src_addr >> 24) & 0xff;
           // UDP
           // port = 520
           output[20] = 0x02;
@@ -333,6 +330,10 @@ int main(int argc, char *argv[]) {
           // TODO: use query and update
           // triggered updates? ref. RFC2453 3.10.1
           for(int i = 0; i < rip.numEntries; i++){
+              printf("%08x ", rip.entries[i].addr);
+              printf("%08x ", rip.entries[i].metric);
+              printf("%08x ", rip.entries[i].nexthop);
+              printf("%08x\n", rip.entries[i].mask);
               int n = Next[0];
               bool not_find = true;
               int pre = 0;
@@ -340,11 +341,8 @@ int main(int argc, char *argv[]) {
                   printf("路由表为空");
               while(n != 0){
                   int len = f2(rip.entries[i].mask);
-//                  printf("%08x\n", rip.entries[i].mask);
-//                  printf("%08x ", table[n].addr);
-//                  printf("%08x\n", rip.entries[i].addr);
-//                  printf("%d ", table[n].len);
-//                  printf("%d\n", len);
+                  printf("rip.entries[i].addr:%08x\n", rip.entries[i].addr);
+                  printf("table[n].addr:%08x\n", table[n].addr);
                   if(table[n].addr == rip.entries[i].addr && table[n].len == len){
                       printf("find!!!\n");
                       not_find = false;
@@ -368,7 +366,7 @@ int main(int argc, char *argv[]) {
                           }
                       }else{
                           printf("not same");
-                          if(ntohl(rip.entries[i].metric) + 1 <= table[n].metric){
+                          if(ntohl(rip.entries[i].metric) + 1 <= ntohl(table[n].metric)){
                               table[n].metric = ntohl(ntohl(rip.entries[i].metric) + 1);
                               table[n].nexthop = src_addr;
                               table[n].if_index = if_index;
@@ -382,10 +380,8 @@ int main(int argc, char *argv[]) {
                   n = Next[n];
               }
               if(not_find){
-//                  printf("not find\n");
-//                  printf("%08x ", rip.entries[i].metric);
-//                  printf("%08x\n", ntohl(rip.entries[i].metric));
-//                  printf("%d\n", ntohl(rip.entries[i].metric));
+                  printf("not find\n");
+                  printf("%08x\n", ntohl(rip.entries[i].metric));
                   if(ntohl(rip.entries[i].metric) <= 15){
                       cnt++;
                       Next[pre] = cnt;
