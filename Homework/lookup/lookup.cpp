@@ -36,7 +36,7 @@ void insertList(RoutingTableEntry entry){
         while(n != 0){
             if(table[n].addr == entry.addr && table[n].len == entry.len) {
                 if(entry.metric + 1 <= table[n].metric){
-                    table[n] = entry;
+                    table[n].metric = entry.metric + 1;
                     return;
                 }else{
                     return;
@@ -78,8 +78,11 @@ void Show(){
     else{
         int n = Next[0];
         while(n != 0){
-            printf("%08x ", table[n].nexthop);
-            printf("%d\n", table[n].if_index);
+            printf("addr:%08x ", table[n].addr);
+            printf("len:%d ", table[n].len);
+            printf("metric:%08x ", table[n].metric);
+            printf("nexthop:%08x ", table[n].nexthop);
+            printf("if_index:%d\n", table[n].if_index);
             if(Next[n] == 0)
                 return;
             else
@@ -163,5 +166,4 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
         } else
             return false;
     }
-    return false;
 }
