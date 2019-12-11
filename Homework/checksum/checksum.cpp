@@ -18,23 +18,14 @@ bool validateIPChecksum(uint8_t *packet, size_t len) {
     int buf = (buf1 << 8) + buf2;
 
     unsigned int cksum = 0;
-	int index = 0;
 
-	*(packet + 10) = 0;
-	*(packet + 11) = 0;
+	packet[10] = 0;
+	packet[11] = 0;
 
-    if(length % 2 == 0) {
-        for(int i = 0; i < length; i += 2){
-            cksum += *(packet + i + 1);
-            cksum += (uint32_t)*(packet + i) << 8;
-        }
-    }else{
-        for(int i = 0; i < length - 1; i += 2){
-            cksum += *(packet + i + 1);
-            cksum += (uint32_t)*(packet + i) << 8;
-        }
-        cksum += (uint32_t)*(packet + length - 1) << 8;
-    }
+	for(int i = 0; i < length; i += 2){
+	    cksum += packet[i + 1];
+	    cksum += (uint32_t)packet[i] << 8;
+	}
 
 	while(cksum > 0xffff)
 	{
@@ -42,6 +33,10 @@ bool validateIPChecksum(uint8_t *packet, size_t len) {
 	}
 
 	cksum = (~cksum) & 0xffff;
+
+	packet[10] = buf1;
+	packet[11] = buf2;
+
 	if(cksum == buf)
 	    return true;
 	else
