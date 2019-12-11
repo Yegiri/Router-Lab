@@ -21,8 +21,8 @@ using namespace std;
   你可以在全局变量中把路由表以一定的数据结构格式保存下来。
 */
 
-RoutingTableEntry table[100];
-int Next[100];
+RoutingTableEntry table[150];
+int Next[150];
 int cnt = 1;
 
 void insertList(RoutingTableEntry entry){
@@ -32,19 +32,22 @@ void insertList(RoutingTableEntry entry){
         table[Next[0]] = entry;
     }else{
         int n = Next[0];
+        int pre = 0;
         while(n != 0){
             if(table[n].addr == entry.addr && table[n].len == entry.len) {
-                table[n] = entry;
-                return;
+                if(entry.metric + 1 <= table[n].metric){
+                    table[n] = entry;
+                    return;
+                }else{
+                    return;
+                }
             }
-            if(Next[n] == 0)
-                break;
-            else
-                n = Next[n];
+            pre = n;
+            n = Next[n];
         }
         cnt++;
-        Next[n] = cnt;
-        table[Next[n]] = entry;
+        Next[pre] = cnt;
+        table[Next[pre]] = entry;
     }
 }
 
@@ -94,7 +97,7 @@ void Show(){
  * 删除时按照 addr 和 len 匹配。
  */
 void update(bool insert, RoutingTableEntry entry) {
-  // TODO:
+    // TODO:
     if(insert){   //插入
         insertList(entry);
     }else{    //删除
@@ -112,7 +115,7 @@ void update(bool insert, RoutingTableEntry entry) {
  * @return 查到则返回 true ，没查到则返回 false
  */
 bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
-  // TODO:
+    // TODO:
     int ansId = 0, maxLen = 0;
 //    printf("%08x ", addr);
     if(Next[0] == 0){
@@ -160,5 +163,5 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
         } else
             return false;
     }
-  return false;
+    return false;
 }

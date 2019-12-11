@@ -33,10 +33,10 @@ using namespace std;
 */
 
 void add(const uint8_t *packet, RipPacket *p, int order){
-    p->entries[order].addr = (packet[39 + order * 20] << 24) + (packet[38 + order * 20] << 16) + (packet[37 + order * 20] << 8) + packet[36 + order * 20];
-    p->entries[order].mask = (packet[43 + order * 20] << 24) + (packet[42 + order * 20] << 16) + (packet[41 + order * 20] << 8) + packet[40 + order * 20];
-    p->entries[order].nexthop = (packet[47 + order * 20] << 24) + (packet[46 + order * 20] << 16) + (packet[45 + order * 20] << 8) + packet[44 + order * 20];
-    p->entries[order].metric = (packet[51 + order * 20] << 24) + (packet[50 + order * 20] << 16) + (packet[49 + order * 20] << 8) + packet[48 + order * 20];
+    p->entries[order].addr = ((uint32_t)packet[39 + order * 20] << 24) + ((uint32_t)packet[38 + order * 20] << 16) + ((uint32_t)packet[37 + order * 20] << 8) + packet[36 + order * 20];
+    p->entries[order].mask = ((uint32_t)packet[43 + order * 20] << 24) + ((uint32_t)packet[42 + order * 20] << 16) + ((uint32_t)packet[41 + order * 20] << 8) + packet[40 + order * 20];
+    p->entries[order].nexthop = ((uint32_t)packet[47 + order * 20] << 24) + ((uint32_t)packet[46 + order * 20] << 16) + ((uint32_t)packet[45 + order * 20] << 8) + packet[44 + order * 20];
+    p->entries[order].metric = ((uint32_t)packet[51 + order * 20] << 24) + ((uint32_t)packet[50 + order * 20] << 16) + ((uint32_t)packet[49 + order * 20] << 8) + packet[48 + order * 20];
 }
 
 /**
@@ -57,13 +57,13 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   // TODO:
     RipPacket test;
     int headLen = (packet[0] & 0xf) * 4;
-    int totalLen = (packet[2] << 8) + packet[3];
+    int totalLen = ((uint32_t)packet[2] << 8) + packet[3];
     if(totalLen > len)
         return false;
     int command = packet[28];
     int version = packet[29];
-    int zero = (packet[30] << 8) + packet[31];
-    int metric = (packet[48] << 24) + (packet[49] << 16) + (packet[50] << 8) + packet[51];
+    int zero = ((uint32_t)packet[30] << 8) + packet[31];
+    int metric = ((uint32_t)packet[48] << 24) + ((uint32_t)packet[49] << 16) + ((uint32_t)packet[50] << 8) + packet[51];
     int mask0 = packet[40];
     int mask1 = packet[41];
     int mask2 = packet[42];
@@ -76,10 +76,10 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
         return false;
     if(zero != 0)
         return false;
-    int family = (packet[32] << 8) + packet[33];
+    int family = ((uint32_t)packet[32] << 8) + packet[33];
     if(!((command == 1 && family == 0) || (command == 2 && family == 2)))
         return false;
-    int tag = (packet[34] << 8) + packet[35];
+    int tag = ((uint32_t)packet[34] << 8) + packet[35];
     if(tag != 0)
         return false;
     if(!(metric>=1 && metric<=16))
@@ -88,10 +88,6 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
     test.command = command;
     for(int i = 0; i < test.numEntries; i++)
         add(packet, &test, i);
-//    test.entries[0].addr = (packet[39] << 24) + (packet[38] << 16) + (packet[37] << 8) + packet[36];
-//    test.entries[0].mask = (packet[43] << 24) + (packet[42] << 16) + (packet[41] << 8) + packet[40];
-//    test.entries[0].nexthop = (packet[47] << 24) + (packet[46] << 16) + (packet[45] << 8) + packet[44];
-//    test.entries[0].metric = (packet[51] << 24) + (packet[50] << 16) + (packet[49] << 8) + packet[48];
     *output = test;
     return true;
 }

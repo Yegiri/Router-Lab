@@ -26,14 +26,14 @@ bool validateIPChecksum(uint8_t *packet, size_t len) {
     if(length % 2 == 0) {
         for(int i = 0; i < length; i += 2){
             cksum += *(packet + i + 1);
-            cksum += *(packet + i) << 8;
+            cksum += (uint32_t)*(packet + i) << 8;
         }
     }else{
         for(int i = 0; i < length - 1; i += 2){
             cksum += *(packet + i + 1);
-            cksum += *(packet + i) << 8;
+            cksum += (uint32_t)*(packet + i) << 8;
         }
-        cksum += *(packet + length - 1) << 8;
+        cksum += (uint32_t)*(packet + length - 1) << 8;
     }
 
 	while(cksum > 0xffff)
