@@ -166,17 +166,31 @@ int main(int argc, char *argv[]) {
                     entries_num++;
                     pre = n;
                     n = Next[n];
+                    if (entries_num == 25) {
+                        rippacket.numEntries = entries_num;
+                        rippacket.command = 2;
+                        //计算totalLen
+                        uint32_t totalLen = 32 + 20 * entries_num;
+                        create_header(totalLen, i, entries_num);
+                        //计算IP checksum
+                        checksum_cal();
+                        assemble(&rippacket, output + 28);
+                        HAL_SendIPPacket(i, output, totalLen, multicastMac);
+                        entries_num = 0;
+                    }
                 }
             }
-            rippacket.numEntries = entries_num;
-            rippacket.command = 2;
-            //计算totalLen
-            uint32_t totalLen = 32 + 20 * entries_num;
-            create_header(totalLen, i, entries_num);
-            //计算IP checksum
-            checksum_cal();
-            assemble(&rippacket, output + 28);
-            HAL_SendIPPacket(i, output, totalLen, multicastMac);
+            if (entries_num > 0) {
+                rippacket.numEntries = entries_num;
+                rippacket.command = 2;
+                //计算totalLen
+                uint32_t totalLen = 32 + 20 * entries_num;
+                create_header(totalLen, i, entries_num);
+                //计算IP checksum
+                checksum_cal();
+                assemble(&rippacket, output + 28);
+                HAL_SendIPPacket(i, output, totalLen, multicastMac);
+            }
         }
         printf("30s Timer\n");
         Show();
@@ -266,60 +280,117 @@ int main(int argc, char *argv[]) {
                   entries_num++;
                   pre = n;
                   n = Next[n];
+                  if (entries_num == 25) {
+                      resp.numEntries = entries_num;
+                      resp.command = 2;
+                      //计算totalLen
+                      uint32_t totalLen = 20 + 8 + 4 + 20 * entries_num;
+                      // assemble
+                      // IP
+                      output[0] = 0x45;
+                      //TOS=0
+                      output[1] = 0;
+                      //Total Length
+                      output[2] = totalLen >> 8;
+                      output[3] = totalLen & 0xff;
+                      //id=0
+                      output[4] = 0;
+                      output[5] = 0;
+                      //Flags=0 & OFF = 0
+                      output[6] = 0;
+                      output[7] = 0;
+                      //TTL=1
+                      output[8] = 1;
+                      //Protocol UDP17
+                      output[9] = 0x11;
+                      //source address
+                      output[12] = addrs[if_index] & 0xff;
+                      output[13] = (addrs[if_index] >> 8) & 0xff;
+                      output[14] = (addrs[if_index] >> 16) & 0xff;
+                      output[15] = (addrs[if_index] >> 24) & 0xff;
+                      //destination address
+                      output[16] = src_addr & 0xff;
+                      output[17] = (src_addr >> 8) & 0xff;
+                      output[18] = (src_addr >> 16) & 0xff;
+                      output[19] = (src_addr >> 24) & 0xff;
+                      // UDP
+                      // port = 520
+                      output[20] = 0x02;
+                      output[21] = 0x08;
+                      output[22] = 0x02;
+                      output[23] = 0x08;
+                      //UDP length
+                      int udp_len = 12 + entries_num * 20;
+                      output[24] = udp_len >> 8;
+                      output[25] = udp_len & 0xff;
+                      // ...
+                      // RIP
+                      uint32_t rip_len = assemble(&resp, &output[20 + 8]);
+                      // checksum calculation for ip and udp
+                      checksum_cal();
+                      // if you don't want to calculate udp checksum, set it to zero
+                      output[26] = 0;
+                      output[27] = 0;
+                      // send it back
+                      HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+                      entries_num = 0;
+                  }
               }
           }
-          resp.numEntries = entries_num;
-          resp.command = 2;
-          //计算totalLen
-          uint32_t totalLen = 20 + 8 + 4 + 20 * entries_num;
-          // assemble
-          // IP
-          output[0] = 0x45;
-          //TOS=0
-          output[1] = 0;
-          //Total Length
-          output[2] = totalLen >> 8;
-          output[3] = totalLen & 0xff;
-          //id=0
-          output[4] = 0;
-          output[5] = 0;
-          //Flags=0 & OFF = 0
-          output[6] = 0;
-          output[7] = 0;
-          //TTL=1
-          output[8] = 1;
-          //Protocol UDP17
-          output[9] = 0x11;
-          //source address
-          output[12] = addrs[if_index] & 0xff;
-          output[13] = (addrs[if_index] >> 8) & 0xff;
-          output[14] = (addrs[if_index] >> 16) & 0xff;
-          output[15] = (addrs[if_index] >> 24) & 0xff;
-          //destination address
-          output[16] = src_addr & 0xff;
-          output[17] = (src_addr >> 8) & 0xff;
-          output[18] = (src_addr >> 16) & 0xff;
-          output[19] = (src_addr >> 24) & 0xff;
-          // UDP
-          // port = 520
-          output[20] = 0x02;
-          output[21] = 0x08;
-          output[22] = 0x02;
-          output[23] = 0x08;
-          //UDP length
-          int udp_len = 12 + entries_num * 20;
-          output[24] = udp_len >> 8;
-          output[25] = udp_len & 0xff;
-          // ...
-          // RIP
-          uint32_t rip_len = assemble(&resp, &output[20 + 8]);
-          // checksum calculation for ip and udp
-          checksum_cal();
-          // if you don't want to calculate udp checksum, set it to zero
-          output[26] = 0;
-          output[27] = 0;
-          // send it back
-          HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+          if (entries_num > 0) {
+              resp.numEntries = entries_num;
+              resp.command = 2;
+              //计算totalLen
+              uint32_t totalLen = 20 + 8 + 4 + 20 * entries_num;
+              // assemble
+              // IP
+              output[0] = 0x45;
+              //TOS=0
+              output[1] = 0;
+              //Total Length
+              output[2] = totalLen >> 8;
+              output[3] = totalLen & 0xff;
+              //id=0
+              output[4] = 0;
+              output[5] = 0;
+              //Flags=0 & OFF = 0
+              output[6] = 0;
+              output[7] = 0;
+              //TTL=1
+              output[8] = 1;
+              //Protocol UDP17
+              output[9] = 0x11;
+              //source address
+              output[12] = addrs[if_index] & 0xff;
+              output[13] = (addrs[if_index] >> 8) & 0xff;
+              output[14] = (addrs[if_index] >> 16) & 0xff;
+              output[15] = (addrs[if_index] >> 24) & 0xff;
+              //destination address
+              output[16] = src_addr & 0xff;
+              output[17] = (src_addr >> 8) & 0xff;
+              output[18] = (src_addr >> 16) & 0xff;
+              output[19] = (src_addr >> 24) & 0xff;
+              // UDP
+              // port = 520
+              output[20] = 0x02;
+              output[21] = 0x08;
+              output[22] = 0x02;
+              output[23] = 0x08;
+              //UDP length
+              int udp_len = 12 + entries_num * 20;
+              output[24] = udp_len >> 8;
+              output[25] = udp_len & 0xff;
+              // ...
+              // RIP
+              uint32_t rip_len = assemble(&resp, &output[20 + 8]);
+              // checksum calculation for ip and udp
+              checksum_cal();
+              // if you don't want to calculate udp checksum, set it to zero
+              output[26] = 0;
+              output[27] = 0;
+              // send it back
+              HAL_SendIPPacket(if_index, output, rip_len + 20 + 8, src_mac);
+          }
         } else {
           // 3a.2 response, ref. RFC2453 3.9.2
           printf("3a.2\n");
@@ -433,3 +504,4 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+
