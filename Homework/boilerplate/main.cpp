@@ -15,8 +15,8 @@ extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 extern void Show();
 
-extern RoutingTableEntry table[150];
-extern int Next[150];
+extern RoutingTableEntry table[4096];
+extern int Next[4096];
 extern int cnt;
 
 
@@ -27,7 +27,7 @@ uint8_t output[2048];
 // 2: 10.0.2.1
 // 3: 10.0.3.1
 // 你可以按需进行修改，注意端序
-in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a,
+in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0204a8c0, 0x0205a8c0, 0x0102000a,
                                      0x0103000a};
 // multicast MAC for 224.0.0.9 is 01:00:5e:00:00:09
 in_addr_t multicastIP = 0x090000e0;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
   uint64_t last_time = 0;
   while (1) {
     uint64_t time = HAL_GetTicks();
-    if (time > last_time + 5 * 1000) {
+    if (time > last_time + 30 * 1000) {
         for(int i = 0; i < N_IFACE_ON_BOARD; i++) {
             RipPacket rippacket;
             int entries_num = 0;
@@ -412,8 +412,8 @@ int main(int argc, char *argv[]) {
                   printf("路由表为空");
               while(n != 0){
                   int len = f2(rip.entries[i].mask);
-                  printf("rip.entries[i].addr:%08x\n", rip.entries[i].addr);
-                  printf("table[n].addr:%08x\n", table[n].addr);
+                  //printf("rip.entries[i].addr:%08x\n", rip.entries[i].addr);
+                  //printf("table[n].addr:%08x\n", table[n].addr);
                   if(table[n].addr == rip.entries[i].addr && table[n].len == len){
                       printf("find!!!\n");
                       not_find = false;

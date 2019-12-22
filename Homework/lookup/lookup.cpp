@@ -21,8 +21,8 @@ using namespace std;
   你可以在全局变量中把路由表以一定的数据结构格式保存下来。
 */
 
-RoutingTableEntry table[150];
-int Next[150];
+RoutingTableEntry table[4096];
+int Next[4096];
 int cnt = 1;
 
 void insertList(RoutingTableEntry entry){
